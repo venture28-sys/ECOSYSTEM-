@@ -1,0 +1,64 @@
+/* Build Me Design System — globals.css v1.0
+   Import once in app/layout.tsx. Pairs with tailwind.config.js. */
+
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-primary: #F97316;
+  --color-secondary: #0F172A;
+  --color-accent: #0EA5E9;
+  --color-success: #16A34A;
+  --color-warning: #F59E0B;
+  --color-danger: #DC2626;
+  --color-neutral: #64748B;
+
+  --bg: #FFFFFF;
+  --surface: #FFFFFF;
+  --surface-2: #F1F5F9;
+  --border: #E2E8F0;
+  --text: #0F172A;
+  --text-muted: #64748B;
+
+  --radius: 12px;
+  --shadow-card: 0 4px 6px -1px rgba(15,23,42,0.10), 0 2px 4px -1px rgba(15,23,42,0.06);
+
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --dur-fast: 200ms;
+  --dur-base: 320ms;
+  --dur-slow: 500ms;
+}
+
+[data-theme="dark"] {
+  --bg: #0B1220;
+  --surface: #131C2E;
+  --surface-2: #1A2436;
+  --border: #26324A;
+  --text: #F1F5F9;
+  --text-muted: #8A99B3;
+  --shadow-card: 0 4px 10px -2px rgba(0,0,0,0.45), 0 2px 4px -1px rgba(0,0,0,0.3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  transition: background var(--dur-base) var(--ease), color var(--dur-base) var(--ease);
+}
+
+h1, h2, h3, h4, h5 {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+code, .mono {
+  font-family: 'JetBrains Mono', monospace;
+}
