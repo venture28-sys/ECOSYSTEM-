@@ -1,190 +1,195 @@
-import type { Metadata } from "next";
-import Link from "next/link";
+import { notFound } from "next/navigation";
 import {
-  HardHat, Wallet, ShieldCheck, Bot, ClipboardList, Package, Truck,
-  Building2, Ruler, Users, ArrowRight, CheckCircle2, FileText,
+  MapPin, BadgeCheck, ShieldCheck, PhoneCall, Circle, Award,
+  Briefcase, ExternalLink, Pencil,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { createClient } from "@/lib/supabase/server";
+import { roleLabel } from "@/lib/roles";
 import { Card } from "@/components/ui/card";
-import { Section, Container, Eyebrow } from "@/components/layout/section";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Container } from "@/components/layout/section";
+import { StarRating } from "@/components/profile/star-rating";
 
-export const metadata: Metadata = {
-  title: "Home",
-  description:
-    "The operating system for construction across Africa — marketplace, wallet, escrow, AI assistant, and project management in one platform.",
-};
+export default async function ProfilePage({ params }: { params: { id: string } }) {
+  const supabase = createClient();
 
-const MODULES = [
-  { icon: Building2, title: "Construction Marketplace", desc: "Post projects, compare quotations, and hire verified contractors." },
-  { icon: Wallet, title: "Digital Wallet", desc: "Available, pending, escrow, and withdrawable balances — always reconciled." },
-  { icon: ShieldCheck, title: "Escrow Platform", desc: "Funds released only after milestones are approved. No surprises." },
-  { icon: Bot, title: "AI Assistant", desc: "BOQ generation, cost estimation, and construction guidance on demand." },
-  { icon: ClipboardList, title: "Project Management", desc: "Track milestones, progress photos, and approvals in one timeline." },
-  { icon: Package, title: "Material Marketplace", desc: "Order materials directly from verified suppliers." },
-  { icon: Truck, title: "Equipment & Logistics", desc: "Rent equipment and track deliveries end to end." },
-  { icon: FileText, title: "Financing & Insurance", desc: "Referral access to project financing and construction insurance." },
-];
+  const { data: { user: viewer } } = await supabase.auth.getUser();
 
-const USER_TYPES = [
-  { icon: Users, title: "Clients", desc: "Post projects, fund escrow, track progress, rate contractors." },
-  { icon: HardHat, title: "Contractors", desc: "Quote jobs, get verified, get paid on milestones." },
-  { icon: Building2, title: "Architects & Engineers", desc: "Upload drawings, consult, review, and inspect." },
-  { icon: Ruler, title: "Quantity Surveyors", desc: "Generate BOQs and manage project budgets." },
-  { icon: Package, title: "Suppliers", desc: "List products, manage inventory, fulfill orders." },
-  { icon: Truck, title: "Equipment & Logistics", desc: "List equipment and manage deliveries." },
-];
+  const [{ data: profile }, { data: skills }, { data: certificates }, { data: portfolio }, { data: jobs }] =
+    await Promise.all([
+      supabase.from("profiles").select("*").eq("id", params.id).single(),
+      supabase.from("skills").select("*").eq("profile_id", params.id),
+      supabase.from("certificates").select("*").eq("profile_id", params.id).order("issue_date", { ascending: false }),
+      supabase.from("portfolio_items").select("*").eq("profile_id", params.id).order("created_at", { ascending: false }),
+      supabase.from("completed_jobs").select("*").eq("profile_id", params.id).order("completed_at", { ascending: false }),
+    ]);
 
-const ESCROW_FLOW = [
-  "Project Created", "Quotation Accepted", "Contract Generated", "Client Funds Escrow",
-  "Contractor Starts Work", "Milestone Completed", "Client Review", "Payment Released",
-];
+  if (!profile) notFound();
 
-export default function HomePage() {
+  const isOwner = viewer?.id === profile.id;
+
   return (
     <>
-      {/* HERO */}
-      <div className="relative overflow-hidden bg-secondary text-white border-b border-white/10">
-        <div
-          className="absolute inset-0 opacity-[0.06]"
-          style={{
-            backgroundImage:
-              "linear-gradient(rgba(255,255,255,0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.4) 1px, transparent 1px)",
-            backgroundSize: "42px 42px",
-          }}
-        />
-        <Container className="relative py-24 sm:py-32 text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-1.5 font-mono text-xs text-slate-300 mb-6">
-            Africa&apos;s AI-powered construction ecosystem
+      {/* Cover */}
+      <div
+        className="h-48 sm:h-56 bg-secondary relative"
+        style={profile.cover_url ? { backgroundImage: `url(${profile.cover_url})`, backgroundSize: "cover", backgroundPosition: "center" } : undefined}
+      />
+
+      <Container className="relative">
+        <div className="flex flex-col sm:flex-row sm:items-end gap-5 -mt-14 sm:-mt-16">
+          <div className="w-28 h-28 rounded-full border-4 border-[var(--bg)] bg-neutral-100 overflow-hidden shrink-0">
+            {profile.avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={profile.avatar_url} alt={profile.full_name} className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-2xl font-display font-bold text-neutral-300">
+                {profile.full_name.charAt(0)}
+              </div>
+            )}
           </div>
-          <h1 className="font-display font-bold text-4xl sm:text-6xl leading-tight max-w-3xl mx-auto">
-            Build Smarter. Build Faster. <span className="text-primary">Build Together.</span>
-          </h1>
-          <p className="text-slate-300 text-lg max-w-2xl mx-auto mt-6">
-            Build Me connects clients, contractors, architects, engineers, suppliers, and equipment
-            providers on one secure platform — with wallet, escrow, and AI tools built in.
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-3 mt-8">
-            <Button href="/marketplace" size="lg">
-              Post a Project <ArrowRight size={18} />
-            </Button>
-            <Button href="/professionals" variant="outline" size="lg" className="border-white text-white hover:bg-white/10">
-              Join as a Professional
-            </Button>
+
+          <div className="flex-1 pb-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="font-display font-bold text-2xl">{profile.full_name}</h1>
+              {profile.verification_status === "verified" && (
+                <BadgeCheck size={20} className="text-accent" />
+              )}
+            </div>
+            {profile.headline && <p className="text-neutral-400 mt-0.5">{profile.headline}</p>}
           </div>
-        </Container>
-      </div>
 
-      {/* MODULES */}
-      <Section>
-        <div className="text-center max-w-2xl mx-auto mb-12">
-          <Eyebrow>Platform</Eyebrow>
-          <h2 className="mb-3">One ecosystem, every stakeholder</h2>
-          <p className="text-neutral-400">
-            Build Me isn&apos;t a website — it&apos;s the connective layer for planning, hiring, paying,
-            procuring, and managing construction projects.
-          </p>
-        </div>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {MODULES.map((m) => (
-            <Card key={m.title}>
-              <div className="w-11 h-11 rounded bg-primary-100 flex items-center justify-center text-primary mb-4">
-                <m.icon size={20} />
-              </div>
-              <h5 className="font-display font-semibold mb-1.5">{m.title}</h5>
-              <p className="text-sm text-neutral-400">{m.desc}</p>
-            </Card>
-          ))}
-        </div>
-      </Section>
-
-      {/* USER TYPES */}
-      <Section muted>
-        <div className="text-center max-w-2xl mx-auto mb-12">
-          <Eyebrow>Who it&apos;s for</Eyebrow>
-          <h2 className="mb-3">Built for every role in construction</h2>
-          <p className="text-neutral-400">Every workflow on Build Me is role-aware, from posting a project to approving final payment.</p>
-        </div>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {USER_TYPES.map((u) => (
-            <Card key={u.title} hover={false} className="flex items-start gap-4">
-              <div className="w-10 h-10 rounded bg-secondary text-white flex items-center justify-center shrink-0">
-                <u.icon size={18} />
-              </div>
-              <div>
-                <h5 className="font-display font-semibold mb-1">{u.title}</h5>
-                <p className="text-sm text-neutral-400">{u.desc}</p>
-              </div>
-            </Card>
-          ))}
-        </div>
-      </Section>
-
-      {/* ESCROW FLOW */}
-      <Section>
-        <div className="text-center max-w-2xl mx-auto mb-12">
-          <Eyebrow>How payments work</Eyebrow>
-          <h2 className="mb-3">Money moves only when work does</h2>
-          <p className="text-neutral-400">Client funds sit safely in escrow and release only after each milestone is approved.</p>
-        </div>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {ESCROW_FLOW.map((step, i) => (
-            <div key={step} className="flex items-start gap-3">
-              <div className="w-7 h-7 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center shrink-0 font-mono">
-                {i + 1}
-              </div>
-              <span className="text-sm font-medium text-secondary dark:text-[var(--text)] pt-0.5">{step}</span>
+          {isOwner && (
+            <div className="pb-2">
+              <Button href="/profile/edit" variant="secondary" size="sm">
+                <Pencil size={14} /> Edit Profile
+              </Button>
             </div>
-          ))}
+          )}
         </div>
-      </Section>
 
-      {/* TRUST */}
-      <Section muted>
-        <div className="grid lg:grid-cols-2 gap-10 items-center">
-          <div>
-            <Eyebrow>Security</Eyebrow>
-            <h2 className="mb-4">Built on fintech-grade trust</h2>
-            <ul className="space-y-3">
-              {[
-                "Every transaction ledgered — append-only, fully auditable",
-                "No negative wallet balances, ever",
-                "Role-based access, encrypted communications, MFA for admins",
-                "KYC verification required before contractors and suppliers go live",
-              ].map((item) => (
-                <li key={item} className="flex items-start gap-3 text-sm text-neutral-400">
-                  <CheckCircle2 size={18} className="text-success shrink-0 mt-0.5" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-          <Card hover={false} className="p-8">
-            <div className="flex items-center gap-3 mb-4">
-              <ShieldCheck className="text-success" size={28} />
-              <span className="font-display font-semibold text-lg">Escrow Secured</span>
-            </div>
-            <p className="text-neutral-400 text-sm mb-4">
-              Riverside Apartments — Milestone 3 of 5. Funds held until client approval.
-            </p>
-            <div className="h-2 rounded-full bg-neutral-100 dark:bg-[var(--surface-2)] overflow-hidden">
-              <div className="h-full bg-success" style={{ width: "62%" }} />
-            </div>
-          </Card>
+        <div className="flex flex-wrap items-center gap-4 mt-5 text-sm text-neutral-400">
+          <Badge tone="primary">{roleLabel(profile.role)}</Badge>
+          {profile.location && (
+            <span className="flex items-center gap-1"><MapPin size={14} /> {profile.location}</span>
+          )}
+          <span className="flex items-center gap-1.5">
+            <Circle size={9} className={profile.is_available ? "fill-success text-success" : "fill-neutral-300 text-neutral-300"} />
+            {profile.is_available ? "Available for work" : "Not currently available"}
+          </span>
+          {profile.phone_verified && (
+            <span className="flex items-center gap-1 text-success"><PhoneCall size={14} /> Phone verified</span>
+          )}
+          <StarRating value={profile.rating_avg} count={profile.rating_count} />
         </div>
-      </Section>
+      </Container>
 
-      {/* CTA */}
-      <Section className="text-center">
-        <h2 className="mb-4">Ready to build with us?</h2>
-        <p className="text-neutral-400 max-w-xl mx-auto mb-8">
-          Whether you&apos;re posting a project or offering your services, Build Me gives you a secure
-          place to do it.
-        </p>
-        <div className="flex flex-wrap items-center justify-center gap-3">
-          <Button href="/marketplace" size="lg">Get Started</Button>
-          <Button href="/contact" variant="secondary" size="lg">Talk to Us</Button>
+      <Container className="grid lg:grid-cols-[2fr_1fr] gap-8 mt-4 mb-16">
+        <div className="space-y-8">
+          {profile.bio && (
+            <Block>
+              <h3 className="font-display font-semibold text-lg mb-3">About</h3>
+              <p className="text-sm text-neutral-500 dark:text-[var(--text-muted)] leading-relaxed whitespace-pre-line">
+                {profile.bio}
+              </p>
+            </Block>
+          )}
+
+          {portfolio && portfolio.length > 0 && (
+            <Block muted>
+              <h3 className="font-display font-semibold text-lg mb-4">Portfolio</h3>
+              <div className="grid sm:grid-cols-2 gap-4">
+                {portfolio.map((item) => (
+                  <Card key={item.id}>
+                    {item.image_url && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={item.image_url} alt={item.title} className="w-full h-32 object-cover rounded mb-3" />
+                    )}
+                    <h5 className="font-display font-semibold text-sm mb-1">{item.title}</h5>
+                    {item.description && <p className="text-xs text-neutral-400 mb-2">{item.description}</p>}
+                    {item.project_url && (
+                      <a href={item.project_url} className="text-xs text-primary font-semibold inline-flex items-center gap-1">
+                        View project <ExternalLink size={11} />
+                      </a>
+                    )}
+                  </Card>
+                ))}
+              </div>
+            </Block>
+          )}
+
+          {jobs && jobs.length > 0 && (
+            <Block>
+              <h3 className="font-display font-semibold text-lg mb-4 flex items-center gap-2">
+                <Briefcase size={18} className="text-primary" /> Completed Jobs ({profile.completed_jobs_count})
+              </h3>
+              <div className="space-y-3">
+                {jobs.map((job) => (
+                  <Card key={job.id} hover={false}>
+                    <div className="flex items-center justify-between gap-3 mb-1">
+                      <h5 className="font-semibold text-sm">{job.title}</h5>
+                      {job.completed_at && <span className="text-xs text-neutral-400">{job.completed_at}</span>}
+                    </div>
+                    {job.client_name && <p className="text-xs text-neutral-400 mb-1">Client: {job.client_name}</p>}
+                    {job.description && <p className="text-xs text-neutral-400">{job.description}</p>}
+                  </Card>
+                ))}
+              </div>
+            </Block>
+          )}
         </div>
-      </Section>
+
+        <div className="space-y-8">
+          <Block>
+            <h3 className="font-display font-semibold text-lg mb-4">Skills</h3>
+            {skills && skills.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {skills.map((s) => (
+                  <span key={s.id} className="rounded-full bg-neutral-100 dark:bg-[var(--surface-2)] px-3 py-1.5 text-xs font-medium">
+                    {s.name}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-neutral-400">No skills added yet.</p>
+            )}
+          </Block>
+
+          <Block muted>
+            <h3 className="font-display font-semibold text-lg mb-4 flex items-center gap-2">
+              <Award size={18} className="text-primary" /> Certificates
+            </h3>
+            {certificates && certificates.length > 0 ? (
+              <div className="space-y-3">
+                {certificates.map((cert) => (
+                  <div key={cert.id} className="flex items-start gap-3">
+                    <ShieldCheck size={16} className="text-success shrink-0 mt-0.5" />
+                    <div>
+                      <div className="text-sm font-semibold">{cert.title}</div>
+                      <div className="text-xs text-neutral-400">
+                        {cert.issuer} {cert.issue_date && `· ${cert.issue_date}`}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-neutral-400">No certificates added yet.</p>
+            )}
+          </Block>
+        </div>
+      </Container>
     </>
+  );
+}
+
+/** Simple padded block — unlike <Section>, does not add its own max-width container,
+ *  since these are used inside an already-constrained grid column. */
+function Block({ children, muted = false }: { children: React.ReactNode; muted?: boolean }) {
+  return (
+    <div className={`rounded p-6 border border-neutral-100 dark:border-[var(--border)] ${muted ? "bg-[var(--surface-2)]" : "bg-[var(--surface)]"}`}>
+      {children}
+    </div>
   );
 }
